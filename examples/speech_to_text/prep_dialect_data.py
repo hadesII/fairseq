@@ -86,7 +86,7 @@ class MUSTC(Dataset):
             self, n: int
     ) -> Tuple[torch.Tensor, int, str, str]:
         wav_path,  sr,  tgt_utt, utt_id = self.data[n]
-        waveform, _ = load_audio(wav_path,sr)
+        waveform = load_audio(wav_path,sr)
         return waveform, sr,  tgt_utt,  utt_id
 
     def __len__(self) -> int:
