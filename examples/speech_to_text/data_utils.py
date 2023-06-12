@@ -22,6 +22,11 @@ import torch
 import soundfile as sf
 from tqdm import tqdm
 
+from whisper.audio import log_mel_spectrogram
+
+SAMPLE_RATE = 16000
+CHUNK_LENGTH = 30
+N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000 samples in a 30-second chunk
 
 UNK_TOKEN, UNK_TOKEN_ID = "<unk>", 3
 BOS_TOKEN, BOS_TOKEN_ID = "<s>", 0
@@ -95,6 +100,35 @@ def extract_fbank_features(
 
     if output_path is not None:
         np.save(output_path.as_posix(), features)
+    return features
+
+def extract_mel_features(
+    waveform: torch.FloatTensor,
+    sample_rate: int,
+    output_path: Optional[Path] = None,
+    n_mel_bins: int = 80,
+    overwrite: bool = False,
+):
+    if output_path is not None and output_path.is_file() and not overwrite:
+        return
+
+    # Kaldi compliance: 16-bit signed integers
+    # _waveform = _waveform * (2 ** 15)
+    # _waveform = _waveform.numpy()
+
+
+
+    features = log_mel_spectrogram(waveform,padding=N_SAMPLES)
+    # features = _get_kaldi_fbank(_waveform, sample_rate, n_mel_bins)
+    # if features is None:
+    #     features = _get_torchaudio_fbank(_waveform, sample_rate, n_mel_bins)
+    # if features is None:
+    #     raise ImportError(
+    #         "Please install pyKaldi or torchaudio to enable fbank feature extraction"
+    #     )
+
+    if output_path is not None:
+        np.save(output_path.as_posix(), features.numpy())
     return features
 
 
