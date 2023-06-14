@@ -38,7 +38,7 @@ from whisper.audio import load_audio
 log = logging.getLogger(__name__)
 
 
-MANIFEST_COLUMNS = ["id", "audio", "n_frames", "tgt_text", "speaker"]
+MANIFEST_COLUMNS = ["id", "audio", "n_frames", "tgt_text"]
 
 
 class MUSTC(Dataset):
@@ -144,8 +144,8 @@ def process(args):
             # Pack features into ZIP
             print("ZIPing audios/features...")
             create_zip(audio_root, zip_path)
-            print("Fetching ZIP manifest...")
-            audio_paths, audio_lengths = get_zip_manifest(
+        print("Fetching ZIP manifest...")
+        audio_paths, audio_lengths = get_zip_manifest(
                 zip_path,
                 is_audio=args.use_audio_input,
             )
@@ -163,7 +163,6 @@ def process(args):
                 manifest["tgt_text"].append(
                     src_utt if args.task == "asr" else tgt_utt
                 )
-                manifest["speaker"].append(speaker_id)
             if is_train_split:
                 train_text.extend(manifest["tgt_text"])
             df = pd.DataFrame.from_dict(manifest)
