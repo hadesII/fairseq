@@ -103,51 +103,52 @@ def process(args):
         # Extract features
         audio_root = cur_root / ("flac" if args.use_audio_input else "mel")
         audio_root.mkdir(exist_ok=True)
-
-        for split in MUSTC.SPLITS:
-            print(f"Fetching split {split}...")
-            dataset = MUSTC(root.as_posix(), lang, split)
-            if args.use_audio_input:
-                print("Converting audios...")
-                for waveform, sample_rate, _, _, _, utt_id in tqdm(dataset):
-                    tgt_sample_rate = 16_000
-                    _wavform, _ = convert_waveform(
-                        waveform, sample_rate, to_mono=True,
-                        to_sample_rate=tgt_sample_rate
-                    )
-                    sf.write(
-                        (audio_root / f"{utt_id}.flac").as_posix(),
-                        _wavform.T.numpy(), tgt_sample_rate
-                    )
-            else:
-                print("Extracting log mel filter bank features...")
-                gcmvn_feature_list = []
-                if split == 'train' and args.cmvn_type == "global":
-                    print("And estimating cepstral mean and variance stats...")
-
-                for waveform, sample_rate,  _, utt_id in tqdm(dataset):
-                    features = extract_mel_features(
-                        waveform, sample_rate, audio_root / f"{utt_id}.npy"
-                    )
-                    if split == 'train' and args.cmvn_type == "global":
-                        if len(gcmvn_feature_list) < args.gcmvn_max_num:
-                            gcmvn_feature_list.append(features)
-
-                if split == 'train' and args.cmvn_type == "global":
-                    # Estimate and save cmv
-                    stats = cal_gcmvn_stats(gcmvn_feature_list)
-                    with open(cur_root / "gcmvn.npz", "wb") as f:
-                        np.savez(f, mean=stats["mean"], std=stats["std"])
-
-        # Pack features into ZIP
         zip_path = cur_root / f"{audio_root.name}.zip"
-        print("ZIPing audios/features...")
-        create_zip(audio_root, zip_path)
-        print("Fetching ZIP manifest...")
-        audio_paths, audio_lengths = get_zip_manifest(
-            zip_path,
-            is_audio=args.use_audio_input,
-        )
+        if not zip_path.exists():
+
+            for split in MUSTC.SPLITS:
+                print(f"Fetching split {split}...")
+                dataset = MUSTC(root.as_posix(), lang, split)
+                if args.use_audio_input:
+                    print("Converting audios...")
+                    for waveform, sample_rate, _, _, _, utt_id in tqdm(dataset):
+                        tgt_sample_rate = 16_000
+                        _wavform, _ = convert_waveform(
+                            waveform, sample_rate, to_mono=True,
+                            to_sample_rate=tgt_sample_rate
+                        )
+                        sf.write(
+                            (audio_root / f"{utt_id}.flac").as_posix(),
+                            _wavform.T.numpy(), tgt_sample_rate
+                        )
+                else:
+                    print("Extracting log mel filter bank features...")
+                    gcmvn_feature_list = []
+                    if split == 'train' and args.cmvn_type == "global":
+                        print("And estimating cepstral mean and variance stats...")
+
+                    for waveform, sample_rate,  _, utt_id in tqdm(dataset):
+                        features = extract_mel_features(
+                            waveform, sample_rate, audio_root / f"{utt_id}.npy"
+                        )
+                        if split == 'train' and args.cmvn_type == "global":
+                            if len(gcmvn_feature_list) < args.gcmvn_max_num:
+                                gcmvn_feature_list.append(features)
+
+                    if split == 'train' and args.cmvn_type == "global":
+                        # Estimate and save cmv
+                        stats = cal_gcmvn_stats(gcmvn_feature_list)
+                        with open(cur_root / "gcmvn.npz", "wb") as f:
+                            np.savez(f, mean=stats["mean"], std=stats["std"])
+
+            # Pack features into ZIP
+            print("ZIPing audios/features...")
+            create_zip(audio_root, zip_path)
+            print("Fetching ZIP manifest...")
+            audio_paths, audio_lengths = get_zip_manifest(
+                zip_path,
+                is_audio=args.use_audio_input,
+            )
         # Generate TSV manifest
         print("Generating manifest...")
         train_text = []
