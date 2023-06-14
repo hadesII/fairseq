@@ -156,12 +156,12 @@ def process(args):
             is_train_split = split.startswith("train")
             manifest = {c: [] for c in MANIFEST_COLUMNS}
             dataset = MUSTC(args.data_root, lang, split)
-            for _, _, src_utt, tgt_utt, speaker_id, utt_id in tqdm(dataset):
+            for _, _,  tgt_utt,  utt_id in tqdm(dataset):
                 manifest["id"].append(utt_id)
                 manifest["audio"].append(audio_paths[utt_id])
                 manifest["n_frames"].append(audio_lengths[utt_id])
                 manifest["tgt_text"].append(
-                    src_utt if args.task == "asr" else tgt_utt
+                     tgt_utt
                 )
             if is_train_split:
                 train_text.extend(manifest["tgt_text"])
